@@ -27,7 +27,7 @@ def main():
                         help=".")
     parser.add_argument("--output_model_path", type=str, default="models/output_model.ckpt",
                         help=".")
-    parser.add_argument("--target", choices=["bert", "mlm"], default="bert",
+    parser.add_argument("--type", choices=["bert", "mlm"], default="bert",
                         help="The training target of the pretraining model.")
 
     args = parser.parse_args()
@@ -78,12 +78,12 @@ def main():
             input_model["encoder.transformer." + str(i) + ".layer_norm_2.gamma"]
         output_model["bert/encoder/layer_" + str(i) + "/output/LayerNorm/beta"] = \
             input_model["encoder.transformer." + str(i) + ".layer_norm_2.beta"]
-
-    if args.target == "bert":
-        output_model["bert/pooler/dense/kernel"] = input_model["target.nsp_linear_1.weight"]
-        output_model["bert/pooler/dense/bias"] = input_model["target.nsp_linear_1.bias"]
-        output_model["cls/seq_relationship/output_weights"] = input_model["target.nsp_linear_2.weight"]
-        output_model["cls/seq_relationship/output_bias"] = input_model["target.nsp_linear_2.bias"]
+    
+    if args.type == "bert":
+        output_model["bert/pooler/dense/kernel"] = input_model["target.sp_linear_1.weight"]
+        output_model["bert/pooler/dense/bias"] = input_model["target.sp_linear_1.bias"]
+        output_model["cls/seq_relationship/output_weights"] = input_model["target.sp_linear_2.weight"]
+        output_model["cls/seq_relationship/output_bias"] = input_model["target.sp_linear_2.bias"]
     output_model["cls/predictions/transform/dense/kernel"] = input_model["target.mlm_linear_1.weight"]
     output_model["cls/predictions/transform/dense/bias"] = input_model["target.mlm_linear_1.bias"]
     output_model["cls/predictions/transform/LayerNorm/gamma"] = input_model["target.layer_norm.gamma"]

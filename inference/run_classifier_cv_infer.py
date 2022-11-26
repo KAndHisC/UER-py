@@ -11,11 +11,9 @@ import numpy as np
 uer_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.append(uer_dir)
 
-from uer.utils.vocab import Vocab
 from uer.utils.constants import *
-from uer.utils import * 
+from uer.utils import *
 from uer.utils.config import load_hyperparam
-from uer.utils.seed import set_seed
 from uer.model_loader import load_model
 from uer.opts import *
 from finetune.run_classifier import Classifier
@@ -28,10 +26,6 @@ def main():
     # Path options.
     parser.add_argument("--load_model_path", default=None, type=str,
                         help="Path of the classfier model.")
-    parser.add_argument("--vocab_path", default=None, type=str,
-                        help="Path of the vocabulary file.")
-    parser.add_argument("--spm_model_path", default=None, type=str,
-                        help="Path of the sentence piece model.")
     parser.add_argument("--test_path", type=str,
                         help="Path of the testset.")
     parser.add_argument("--test_features_path", default=None, type=str,
@@ -41,8 +35,6 @@ def main():
 
     # Model options.
     model_opts(parser)
-    parser.add_argument("--pooling", choices=["mean", "max", "first", "last"], default="first",
-                        help="Pooling type.")
 
     # Inference options.
     parser.add_argument("--batch_size", type=int, default=64,
@@ -100,7 +92,7 @@ def main():
             model = torch.nn.DataParallel(model)
 
         model.eval()
-        for i, (src_batch, seg_batch) in enumerate(batch_loader(batch_size, src, seg)):
+        for _, (src_batch, seg_batch) in enumerate(batch_loader(batch_size, src, seg)):
             src_batch = src_batch.to(device)
             seg_batch = seg_batch.to(device)
             with torch.no_grad():

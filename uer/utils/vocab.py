@@ -1,6 +1,5 @@
 # -*- encoding:utf-8 -*-
 import os
-import torch
 from multiprocessing import Pool
 from uer.utils.constants import *
 from uer.utils.misc import count_lines
@@ -19,7 +18,7 @@ class Vocab(object):
     def load(self, vocab_path, is_quiet=False):
         with open(vocab_path, mode="r", encoding="utf-8") as reader:
             for index, line in enumerate(reader):
-                w = line.strip("\n").split()[0] if line.strip() else line.strip("\n")
+                w = line.strip("\r\n").split()[0] if line.strip() else line.strip("\r\n")
                 self.w2i[w] = index
                 self.i2w.append(w)
         if not is_quiet:
@@ -52,7 +51,9 @@ class Vocab(object):
                 line = f.readline()
                 pos += 1
 
+                # tokenizer is only either CharTokenizer or SpaceTokenizer
                 tokens = tokenizer.tokenize(line, use_vocab=False)
+
                 for t in tokens:
                     if t not in w2i:
                         w2i[t], w2c[t] = len(i2w), 1

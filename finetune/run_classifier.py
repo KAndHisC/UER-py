@@ -11,7 +11,7 @@ import torch.nn as nn
 uer_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.append(uer_dir)
 
-from uer.layers import *
+from uer.embeddings import *
 from uer.encoders import *
 from uer.utils.vocab import Vocab
 from uer.utils.constants import *
@@ -19,6 +19,8 @@ from uer.utils import *
 from uer.utils.optimizers import *
 from uer.utils.config import load_hyperparam
 from uer.utils.seed import set_seed
+from uer.utils.logging import init_logger
+from uer.utils.misc import pooling
 from uer.model_saver import save_model
 from uer.opts import finetune_opts, tokenizer_opts, adv_opts
 
@@ -29,7 +31,7 @@ class Classifier(nn.Module):
         self.embedding = str2embedding[args.embedding](args, len(args.tokenizer.vocab))
         self.encoder = str2encoder[args.encoder](args)
         self.labels_num = args.labels_num
-        self.pooling = args.pooling
+        self.pooling_type = args.pooling
         self.soft_targets = args.soft_targets
         self.soft_alpha = args.soft_alpha
         self.output_layer_1 = nn.Linear(args.hidden_size, args.hidden_size)
@@ -47,14 +49,7 @@ class Classifier(nn.Module):
         # Encoder.
         output = self.encoder(emb, seg)
         # Target.
-        if self.pooling == "mean":
-            output = torch.mean(output, dim=1)
-        elif self.pooling == "max":
-            output = torch.max(output, dim=1)[0]
-        elif self.pooling == "last":
-            output = output[:, -1, :]
-        else:
-            output = output[:, 0, :]
+        output = pooling(output, seg, self.pooling_type)
         output = torch.tanh(self.output_layer_1(output))
         logits = self.output_layer_2(output)
         if tgt is not None:
@@ -73,10 +68,10 @@ def count_labels_num(path):
     with open(path, mode="r", encoding="utf-8") as f:
         for line_id, line in enumerate(f):
             if line_id == 0:
-                for i, column_name in enumerate(line.strip().split("\t")):
+                for i, column_name in enumerate(line.rstrip("\r\n").split("\t")):
                     columns[column_name] = i
                 continue
-            line = line.strip().split("\t")
+            line = line.rstrip("\r\n").split("\t")
             label = int(line[columns["label"]])
             labels_set.add(label)
     return len(labels_set)
@@ -85,7 +80,7 @@ def count_labels_num(path):
 def load_or_initialize_parameters(args, model):
     if args.pretrained_model_path is not None:
         # Initialize with pretrained model.
-        model.load_state_dict(torch.load(args.pretrained_model_path), strict=False)
+        model.load_state_dict(torch.load(args.pretrained_model_path, map_location="cpu"), strict=False)
     else:
         # Initialize with normal distribution.
         for n, p in list(model.named_parameters()):
@@ -95,10 +90,10 @@ def load_or_initialize_parameters(args, model):
 
 def build_optimizer(args, model):
     param_optimizer = list(model.named_parameters())
-    no_decay = ['bias', 'gamma', 'beta']
+    no_decay = ["bias", "gamma", "beta"]
     optimizer_grouped_parameters = [
-                {'params': [p for n, p in param_optimizer if not any(nd in n for nd in no_decay)], 'weight_decay': 0.01},
-                {'params': [p for n, p in param_optimizer if any(nd in n for nd in no_decay)], 'weight_decay': 0.0}
+        {"params": [p for n, p in param_optimizer if not any(nd in n for nd in no_decay)], "weight_decay": 0.01},
+        {"params": [p for n, p in param_optimizer if any(nd in n for nd in no_decay)], "weight_decay": 0.0},
     ]
     if args.optimizer in ["adamw"]:
         optimizer = str2optimizer[args.optimizer](optimizer_grouped_parameters, lr=args.learning_rate, correct_bias=False)
@@ -141,16 +136,16 @@ def read_dataset(args, path):
     with open(path, mode="r", encoding="utf-8") as f:
         for line_id, line in enumerate(f):
             if line_id == 0:
-                for i, column_name in enumerate(line.strip().split("\t")):
+                for i, column_name in enumerate(line.rstrip("\r\n").split("\t")):
                     columns[column_name] = i
                 continue
-            line = line[:-1].split("\t")
+            line = line.rstrip("\r\n").split("\t")
             tgt = int(line[columns["label"]])
             if args.soft_targets and "logits" in columns.keys():
                 soft_tgt = [float(value) for value in line[columns["logits"]].split(" ")]
             if "text_b" not in columns:  # Sentence classification.
                 text_a = line[columns["text_a"]]
-                src = args.tokenizer.convert_tokens_to_ids([CLS_TOKEN] + args.tokenizer.tokenize(text_a))
+                src = args.tokenizer.convert_tokens_to_ids([CLS_TOKEN] + args.tokenizer.tokenize(text_a) + [SEP_TOKEN])
                 seg = [1] * len(src)
             else:  # Sentence-pair classification.
                 text_a, text_b = line[columns["text_a"]], line[columns["text_b"]]
@@ -224,7 +219,7 @@ def train_model(args, model, optimizer, scheduler, src_batch, tgt_batch, seg_bat
     return loss
 
 
-def evaluate(args, dataset, print_confusion_matrix=False):
+def evaluate(args, dataset):
     src = torch.LongTensor([sample[0] for sample in dataset])
     tgt = torch.LongTensor([sample[1] for sample in dataset])
     seg = torch.LongTensor([sample[2] for sample in dataset])
@@ -249,19 +244,18 @@ def evaluate(args, dataset, print_confusion_matrix=False):
             confusion[pred[j], gold[j]] += 1
         correct += torch.sum(pred == gold).item()
 
-    if print_confusion_matrix:
-        print("Confusion matrix:")
-        print(confusion)
-        print("Report precision, recall, and f1:")
+    args.logger.info("Confusion matrix:")
+    args.logger.info(confusion)
+    args.logger.info("Report precision, recall, and f1:")
 
-        eps = 1e-9
-        for i in range(confusion.size()[0]):
-            p = confusion[i, i].item() / (confusion[i, :].sum().item() + eps)
-            r = confusion[i, i].item() / (confusion[:, i].sum().item() + eps)
-            f1 = 2 * p * r / (p + r + eps)
-            print("Label {}: {:.3f}, {:.3f}, {:.3f}".format(i, p, r, f1))
+    eps = 1e-9
+    for i in range(confusion.size()[0]):
+        p = confusion[i, i].item() / (confusion[i, :].sum().item() + eps)
+        r = confusion[i, i].item() / (confusion[:, i].sum().item() + eps)
+        f1 = 2 * p * r / (p + r + eps)
+        args.logger.info("Label {}: {:.3f}, {:.3f}, {:.3f}".format(i, p, r, f1))
 
-    print("Acc. (Correct/Total): {:.4f} ({}/{}) ".format(correct / len(dataset), correct, len(dataset)))
+    args.logger.info("Acc. (Correct/Total): {:.4f} ({}/{}) ".format(correct / len(dataset), correct, len(dataset)))
     return correct / len(dataset), confusion
 
 
@@ -269,9 +263,6 @@ def main():
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     finetune_opts(parser)
-
-    parser.add_argument("--pooling", choices=["mean", "max", "first", "last"], default="first",
-                        help="Pooling type.")
 
     tokenizer_opts(parser)
 
@@ -286,14 +277,12 @@ def main():
 
     # Load the hyperparameters from the config file.
     args = load_hyperparam(args)
-
-    set_seed(args.seed)
-
     # Count the number of labels.
     args.labels_num = count_labels_num(args.train_path)
 
     # Build tokenizer.
     args.tokenizer = str2tokenizer[args.tokenizer](args)
+    set_seed(args.seed)
 
     # Build classification model.
     model = Classifier(args)
@@ -301,28 +290,21 @@ def main():
     # Load or initialize parameters.
     load_or_initialize_parameters(args, model)
 
+    # Get logger.
+    args.logger = init_logger(args)
+
     args.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = model.to(args.device)
 
     # Training phase.
     trainset = read_dataset(args, args.train_path)
-    random.shuffle(trainset)
     instances_num = len(trainset)
     batch_size = args.batch_size
 
-    src = torch.LongTensor([example[0] for example in trainset])
-    tgt = torch.LongTensor([example[1] for example in trainset])
-    seg = torch.LongTensor([example[2] for example in trainset])
-    if args.soft_targets:
-        soft_tgt = torch.FloatTensor([example[3] for example in trainset])
-    else:
-        soft_tgt = None
-
     args.train_steps = int(instances_num * args.epochs_num / batch_size) + 1
 
-    print("Batch size: ", batch_size)
-    print("The number of training instances:", instances_num)
-
+    args.logger.info("Batch size: {}".format(batch_size))
+    args.logger.info("The number of training instances: {}".format(instances_num))
     optimizer, scheduler = build_optimizer(args, model)
 
     if args.fp16:
@@ -334,7 +316,7 @@ def main():
         args.amp = amp
 
     if torch.cuda.device_count() > 1:
-        print("{} GPUs are available. Let's use them.".format(torch.cuda.device_count()))
+        args.logger.info("{} GPUs are available. Let's use them.".format(torch.cuda.device_count()))
         model = torch.nn.DataParallel(model)
     args.model = model
 
@@ -343,15 +325,23 @@ def main():
 
     total_loss, result, best_result = 0.0, 0.0, 0.0
 
-    print("Start training.")
-
+    args.logger.info("Start training.")
     for epoch in range(1, args.epochs_num + 1):
+        random.shuffle(trainset)
+        src = torch.LongTensor([example[0] for example in trainset])
+        tgt = torch.LongTensor([example[1] for example in trainset])
+        seg = torch.LongTensor([example[2] for example in trainset])
+        if args.soft_targets:
+            soft_tgt = torch.FloatTensor([example[3] for example in trainset])
+        else:
+            soft_tgt = None
+
         model.train()
         for i, (src_batch, tgt_batch, seg_batch, soft_tgt_batch) in enumerate(batch_loader(batch_size, src, tgt, seg, soft_tgt)):
             loss = train_model(args, model, optimizer, scheduler, src_batch, tgt_batch, seg_batch, soft_tgt_batch)
             total_loss += loss.item()
             if (i + 1) % args.report_steps == 0:
-                print("Epoch id: {}, Training steps: {}, Avg loss: {:.3f}".format(epoch, i + 1, total_loss / args.report_steps))
+                args.logger.info("Epoch id: {}, Training steps: {}, Avg loss: {:.3f}".format(epoch, i + 1, total_loss / args.report_steps))
                 total_loss = 0.0
 
         result = evaluate(args, read_dataset(args, args.dev_path))
@@ -361,12 +351,12 @@ def main():
 
     # Evaluation phase.
     if args.test_path is not None:
-        print("Test set evaluation.")
+        args.logger.info("Test set evaluation.")
         if torch.cuda.device_count() > 1:
             args.model.module.load_state_dict(torch.load(args.output_model_path))
         else:
             args.model.load_state_dict(torch.load(args.output_model_path))
-        evaluate(args, read_dataset(args, args.test_path), True)
+        evaluate(args, read_dataset(args, args.test_path))
 
 
 if __name__ == "__main__":

@@ -26,16 +26,16 @@ def read_dataset(args, path, split):
     with open(path, mode="r", encoding="utf-8") as f:
         for line_id, line in enumerate(f):
             if line_id == 0:
-                for i, column_name in enumerate(line.strip().split("\t")):
+                for i, column_name in enumerate(line.rstrip("\r\n").split("\t")):
                     columns[column_name] = i
                 continue
-            line = line[:-1].split("\t")
+            line = line.rstrip("\r\n").split("\t")
             tgt = int(line[columns["label"]])
             if args.soft_targets and "logits" in columns.keys():
                 soft_tgt = [float(value) for value in line[columns["logits"]].split(" ")]
             if "text_b" not in columns:  # Sentence classification.
                 text_a = line[columns["text_a"]]
-                src = args.tokenizer.convert_tokens_to_ids([CLS_TOKEN] + args.tokenizer.tokenize(text_a))
+                src = args.tokenizer.convert_tokens_to_ids([CLS_TOKEN] + args.tokenizer.tokenize(text_a) + [SEP_TOKEN])
                 seg = [1] * len(src)
             else:  # Sentence-pair classification.
                 text_a, text_b = line[columns["text_a"]], line[columns["text_b"]]
@@ -105,8 +105,6 @@ def main():
 
     parser.add_argument("--world_size", type=int, default=1,
                         help="Total number of processes (GPUs) for training.")
-    parser.add_argument("--pooling", choices=["mean", "max", "first", "last"], default="first",
-                        help="Pooling type.")
 
     tokenizer_opts(parser)
 
@@ -136,11 +134,14 @@ def main():
     # Load or initialize parameters.
     load_or_initialize_parameters(args, model)
 
+    # Get logger.
+    args.logger = init_logger(args)
+
     param_optimizer = list(model.named_parameters())
-    no_decay = ['bias', 'gamma', 'beta']
+    no_decay = ["bias", "gamma", "beta"]
     optimizer_grouped_parameters = [
-                {'params': [p for n, p in param_optimizer if not any(nd in n for nd in no_decay)], 'weight_decay': 0.01},
-                {'params': [p for n, p in param_optimizer if any(nd in n for nd in no_decay)], 'weight_decay': 0.0}
+        {"params": [p for n, p in param_optimizer if not any(nd in n for nd in no_decay)], "weight_decay": 0.01},
+        {"params": [p for n, p in param_optimizer if any(nd in n for nd in no_decay)], "weight_decay": 0.0}
     ]
 
     deepspeed.init_distributed()
@@ -156,13 +157,13 @@ def main():
     custom_optimizer, custom_scheduler = build_optimizer(args, model)
 
     model, optimizer, _, scheduler = deepspeed.initialize(
-                                                    model=model,
-                                                    model_parameters=optimizer_grouped_parameters,
-                                                    args=args,
-                                                    optimizer=custom_optimizer,
-                                                    lr_scheduler=custom_scheduler,
-                                                    mpu=None,
-                                                    dist_init_required=False)
+        model=model,
+        model_parameters=optimizer_grouped_parameters,
+        args=args,
+        optimizer=custom_optimizer,
+        lr_scheduler=custom_scheduler,
+        mpu=None,
+        dist_init_required=False)
 
     src = torch.LongTensor([example[0] for example in trainset])
     tgt = torch.LongTensor([example[1] for example in trainset])
@@ -179,9 +180,9 @@ def main():
 
     result_tensor = torch.tensor(result).to(args.device)
     if args.rank == 0:
-        print("Batch size: ", batch_size)
-        print("The number of training instances:", instances_num)
-        print("Start training.")
+        args.logger.info("Batch size: {}".format(batch_size))
+        args.logger.info("The number of training instances: {}".format(instances_num))
+        args.logger.info("Start training.")
 
     for epoch in range(1, args.epochs_num + 1):
         model.train()
@@ -189,7 +190,7 @@ def main():
             loss = train_model(args, model, optimizer, scheduler, src_batch, tgt_batch, seg_batch, soft_tgt_batch)
             total_loss += loss.item()
             if (i + 1) % args.report_steps == 0 and args.rank == 0:
-                print("Epoch id: {}, Training steps: {}, Avg loss: {:.3f}".format(epoch, i + 1, total_loss / args.report_steps))
+                args.logger.info("Epoch id: {}, Training steps: {}, Avg loss: {:.3f}".format(epoch, i + 1, total_loss / args.report_steps))
                 total_loss = 0.0
         if args.rank == 0:
             result = evaluate(args, read_dataset(args, args.dev_path, split=False))
@@ -202,7 +203,7 @@ def main():
 
     # Evaluation phase.
     if args.test_path is not None and args.rank == 0:
-        print("Test set evaluation.")
+        args.logger.info("Test set evaluation.")
         model.load_checkpoint(args.output_model_path, str(best_epoch))
         evaluate(args, read_dataset(args, args.test_path, split=False), True)
 

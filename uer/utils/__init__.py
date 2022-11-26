@@ -1,19 +1,20 @@
-from uer.utils.data import *
+from uer.utils.dataset import *
+from uer.utils.dataloader import *
 from uer.utils.act_fun import *
 from uer.utils.optimizers import *
 from uer.utils.adversarial import *
 
 
 str2tokenizer = {"char": CharTokenizer, "space": SpaceTokenizer, "bert": BertTokenizer,
-                 "xlmroberta": XLMRobertaTokenizer}
+                 "bpe": BPETokenizer, "xlmroberta": XLMRobertaTokenizer}
 str2dataset = {"bert": BertDataset, "lm": LmDataset, "mlm": MlmDataset,
-               "bilm": BilmDataset, "albert": AlbertDataset, "seq2seq": Seq2seqDataset,
+               "bilm": BilmDataset, "albert": AlbertDataset, "mt": MtDataset,
                "t5": T5Dataset, "gsg": GsgDataset, "bart": BartDataset,
-               "cls": ClsDataset, "prefixlm": PrefixlmDataset}
-str2dataloader = {"bert": BertDataLoader, "lm": LmDataLoader, "mlm": MlmDataLoader,
-                  "bilm": BilmDataLoader, "albert": AlbertDataLoader, "seq2seq": Seq2seqDataLoader,
-                  "t5": T5DataLoader, "gsg": GsgDataLoader, "bart": BartDataLoader,
-                  "cls": ClsDataLoader, "prefixlm": PrefixlmDataLoader}
+               "cls": ClsDataset, "prefixlm": PrefixlmDataset, "cls_mlm": ClsMlmDataset}
+str2dataloader = {"bert": BertDataloader, "lm": LmDataloader, "mlm": MlmDataloader,
+                  "bilm": BilmDataloader, "albert": AlbertDataloader, "mt": MtDataloader,
+                  "t5": T5Dataloader, "gsg": GsgDataloader, "bart": BartDataloader,
+                  "cls": ClsDataloader, "prefixlm": PrefixlmDataloader, "cls_mlm": ClsMlmDataloader}
 
 str2act = {"gelu": gelu, "gelu_fast": gelu_fast, "relu": relu, "silu": silu, "linear": linear}
 
@@ -26,13 +27,13 @@ str2scheduler = {"linear": get_linear_schedule_with_warmup, "cosine": get_cosine
 
 str2adv = {"fgm": FGM, "pgd": PGD}
 
-__all__ = ["CharTokenizer", "SpaceTokenizer", "BertTokenizer", "XLMRobertaTokenizer", "str2tokenizer",
+__all__ = ["CharTokenizer", "SpaceTokenizer", "BertTokenizer", "BPETokenizer", "XLMRobertaTokenizer", "str2tokenizer",
            "BertDataset", "LmDataset", "MlmDataset", "BilmDataset",
-           "AlbertDataset", "Seq2seqDataset", "T5Dataset", "GsgDataset",
-           "BartDataset", "ClsDataset", "PrefixlmDataset", "str2dataset",
-           "BertDataLoader", "LmDataLoader", "MlmDataLoader", "BilmDataLoader",
-           "AlbertDataLoader", "Seq2seqDataLoader", "T5DataLoader", "GsgDataLoader",
-           "BartDataLoader", "ClsDataLoader", "PrefixlmDataLoader", "str2dataloader",
+           "AlbertDataset", "MtDataset", "T5Dataset", "GsgDataset",
+           "BartDataset", "ClsDataset", "PrefixlmDataset", "ClsMlmDataset", "str2dataset",
+           "BertDataloader", "LmDataloader", "MlmDataloader", "BilmDataloader",
+           "AlbertDataloader", "MtDataloader", "T5Dataloader", "GsgDataloader",
+           "BartDataloader", "ClsDataloader", "PrefixlmDataloader", "ClsMlmDataloader", "str2dataloader",
            "gelu", "gelu_fast", "relu", "silu", "linear", "str2act",
            "AdamW", "Adafactor", "str2optimizer",
            "get_linear_schedule_with_warmup", "get_cosine_schedule_with_warmup",

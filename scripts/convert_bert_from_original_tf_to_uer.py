@@ -22,7 +22,7 @@ def main():
                         help=".")
     parser.add_argument("--output_model_path", default="models/output_model.bin", type=str,
                         help="Path to the output PyTorch model.")
-    parser.add_argument("--target", choices=["bert", "mlm"], default="bert",
+    parser.add_argument("--type", choices=["bert", "mlm"], default="bert",
                         help="The training target of the pretraining model.")
 
     args = parser.parse_args()
@@ -86,11 +86,11 @@ def main():
         output_model["encoder.transformer." + str(i) + ".layer_norm_2.beta"] = \
             input_model["bert/encoder/layer_" + str(i) + "/output/LayerNorm/beta"]
 
-    if args.target == "bert":
-        output_model["target.nsp_linear_1.weight"] = input_model["bert/pooler/dense/kernel"]
-        output_model["target.nsp_linear_1.bias"] = input_model["bert/pooler/dense/bias"]
-        output_model["target.nsp_linear_2.weight"] = input_model["cls/seq_relationship/output_weights"]
-        output_model["target.nsp_linear_2.bias"] = input_model["cls/seq_relationship/output_bias"]
+    if args.type == "bert":
+        output_model["target.sp_linear_1.weight"] = input_model["bert/pooler/dense/kernel"]
+        output_model["target.sp_linear_1.bias"] = input_model["bert/pooler/dense/bias"]
+        output_model["target.sp_linear_2.weight"] = input_model["cls/seq_relationship/output_weights"]
+        output_model["target.sp_linear_2.bias"] = input_model["cls/seq_relationship/output_bias"]
     output_model["target.mlm_linear_1.weight"] = input_model["cls/predictions/transform/dense/kernel"]
     output_model["target.mlm_linear_1.bias"] = input_model["cls/predictions/transform/dense/bias"]
     output_model["target.layer_norm.gamma"] = input_model["cls/predictions/transform/LayerNorm/gamma"]

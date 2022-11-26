@@ -12,7 +12,7 @@ import random
 uer_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.append(uer_dir)
 
-from uer.layers import *
+from uer.embeddings import *
 from uer.encoders import *
 from uer.targets import *
 from uer.utils.constants import *
@@ -35,19 +35,19 @@ def mask_token(tokens, seq_length, tokenizer):
 
 
 def batch_loader(batch_size, src, seg, mask_pos, label):
-    instances_num = src.size(0)                                                                                               
-    for i in range(instances_num // batch_size):                                                                                    
-        src_batch = src[i * batch_size : (i + 1) * batch_size, :]                                                                
-        seg_batch = seg[i * batch_size : (i + 1) * batch_size, :]                                                                    
-        mask_pos_batch = mask_pos[i * batch_size : (i + 1) * batch_size]                                                      
-        label_batch = label[i * batch_size : (i + 1) * batch_size]                                                                
-        yield src_batch, seg_batch, mask_pos_batch, label_batch                                                 
-                                                                                                                                        
-    if instances_num > instances_num // batch_size * batch_size:                                                                    
-        src_batch = src[instances_num // batch_size * batch_size :, :]                                                          
-        seg_batch = seg[instances_num // batch_size * batch_size :, :]                                                              
-        mask_pos_batch = mask_pos[instances_num // batch_size * batch_size :]                                                
-        label_batch = label[instances_num // batch_size * batch_size :]                                                          
+    instances_num = src.size(0)
+    for i in range(instances_num // batch_size):
+        src_batch = src[i * batch_size : (i + 1) * batch_size, :]
+        seg_batch = seg[i * batch_size : (i + 1) * batch_size, :]
+        mask_pos_batch = mask_pos[i * batch_size : (i + 1) * batch_size]
+        label_batch = label[i * batch_size : (i + 1) * batch_size]
+        yield src_batch, seg_batch, mask_pos_batch, label_batch
+
+    if instances_num > instances_num // batch_size * batch_size:
+        src_batch = src[instances_num // batch_size * batch_size :, :]
+        seg_batch = seg[instances_num // batch_size * batch_size :, :]
+        mask_pos_batch = mask_pos[instances_num // batch_size * batch_size :]
+        label_batch = label[instances_num // batch_size * batch_size :]
         yield src_batch, seg_batch, mask_pos_batch, label_batch
 
 
@@ -80,7 +80,7 @@ class ClozeTest(torch.nn.Module):
         super(ClozeTest, self).__init__()
         self.embedding = str2embedding[args.embedding](args, len(args.tokenizer.vocab))
         self.encoder = str2encoder[args.encoder](args)
-        self.target = str2target[args.target](args, len(args.tokenizer.vocab))
+        self.target = MlmTarget(args, len(args.tokenizer.vocab))
         self.act = str2act[args.hidden_act]
 
     def forward(self, src, seg):
@@ -98,15 +98,14 @@ if __name__ == '__main__':
 
     infer_opts(parser)
 
-    parser.add_argument("--target", choices=["bert", "mlm", "albert"], default="bert",
-                        help="The training target of the pretraining model.")
-
     tokenizer_opts(parser)
 
     parser.add_argument("--topn", type=int, default=10,
                         help="Print top n nearest neighbours.")
     
     args = parser.parse_args()
+
+    args.target = "mlm"
 
     # Load the hyperparameters from the config file.
     args = load_hyperparam(args)
@@ -117,11 +116,11 @@ if __name__ == '__main__':
     model = ClozeTest(args)
     model = load_model(model, args.load_model_path)
 
-    # For simplicity, we use DataParallel wrapper to use multiple GPUs.                                                                 
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")                                                               
-    model = model.to(device)                                                                                                            
-    if torch.cuda.device_count() > 1:                                                                                                   
-        print("{} GPUs are available. Let's use them.".format(torch.cuda.device_count()))                                               
+    # For simplicity, we use DataParallel wrapper to use multiple GPUs.
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model = model.to(device)
+    if torch.cuda.device_count() > 1:
+        print("{} GPUs are available. Let's use them.".format(torch.cuda.device_count()))
         model = torch.nn.DataParallel(model)
     model.eval()
 

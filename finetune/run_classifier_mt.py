@@ -11,13 +11,15 @@ import torch.nn as nn
 uer_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.append(uer_dir)
 
-from uer.layers import *
+from uer.embeddings import *
 from uer.encoders import *
 from uer.utils.constants import *
 from uer.utils import *
 from uer.utils.optimizers import *
 from uer.utils.config import load_hyperparam
 from uer.utils.seed import set_seed
+from uer.utils.logging import init_logger
+from uer.utils.misc import pooling
 from uer.model_saver import save_model
 from uer.opts import *
 from finetune.run_classifier import count_labels_num, batch_loader, build_optimizer, load_or_initialize_parameters, train_model, read_dataset, evaluate
@@ -28,7 +30,7 @@ class MultitaskClassifier(nn.Module):
         super(MultitaskClassifier, self).__init__()
         self.embedding = str2embedding[args.embedding](args, len(args.tokenizer.vocab))
         self.encoder = str2encoder[args.encoder](args)
-        self.pooling = args.pooling
+        self.pooling_type = args.pooling
         self.output_layers_1 = nn.ModuleList([nn.Linear(args.hidden_size, args.hidden_size) for _ in args.labels_num_list])
         self.output_layers_2 = nn.ModuleList([nn.Linear(args.hidden_size, labels_num) for labels_num in args.labels_num_list])
 
@@ -46,14 +48,7 @@ class MultitaskClassifier(nn.Module):
         # Encoder.
         output = self.encoder(emb, seg)
         # Target.
-        if self.pooling == "mean":
-            output = torch.mean(output, dim=1)
-        elif self.pooling == "max":
-            output = torch.max(output, dim=1)[0]
-        elif self.pooling == "last":
-            output = output[:, -1, :]
-        else:
-            output = output[:, 0, :]
+        output = pooling(output, seg, self.pooling_type)
         output = torch.tanh(self.output_layers_1[self.dataset_id](output))
         logits = self.output_layers_2[self.dataset_id](output)
         if tgt is not None:
@@ -97,8 +92,6 @@ def main():
 
     # Model options.
     model_opts(parser)
-    parser.add_argument("--pooling", choices=["mean", "max", "first", "last"], default="first",                           
-                        help="Pooling type.")
 
     # Tokenizer options.
     tokenizer_opts(parser)
@@ -134,6 +127,9 @@ def main():
     # Load or initialize parameters.
     load_or_initialize_parameters(args, model)
 
+    # Get logger.
+    args.logger = init_logger(args)
+
     args.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = model.to(args.device)
     args.model = model
@@ -149,14 +145,13 @@ def main():
     for packed_dataset in packed_dataset_list:
         packed_dataset_all += packed_dataset
 
-    random.shuffle(packed_dataset_all)
     instances_num = sum([len(dataset) for dataset in dataset_list])
     batch_size = args.batch_size
 
     args.train_steps = int(instances_num * args.epochs_num / batch_size) + 1
 
-    print("Batch size: ", batch_size)
-    print("The number of training instances:", instances_num)
+    args.logger.info("Batch size: {}".format(batch_size))
+    args.logger.info("The number of training instances: {}".format(instances_num))
 
     optimizer, scheduler = build_optimizer(args, model)
 
@@ -165,18 +160,19 @@ def main():
             from apex import amp
         except ImportError:
             raise ImportError("Please install apex from https://www.github.com/nvidia/apex to use fp16 training.")
-        model, optimizer = amp.initialize(model, optimizer, opt_level = args.fp16_opt_level)
+        model, optimizer = amp.initialize(model, optimizer, opt_level=args.fp16_opt_level)
         args.amp = amp
 
     if torch.cuda.device_count() > 1:
-        print("{} GPUs are available. Let's use them.".format(torch.cuda.device_count()))
+        args.logger.info("{} GPUs are available. Let's use them.".format(torch.cuda.device_count()))
         model = torch.nn.DataParallel(model)
 
     total_loss, result, best_result = 0.0, 0.0, 0.0
 
-    print("Start training.")
+    args.logger.info("Start training.")
 
     for epoch in range(1, args.epochs_num + 1):
+        random.shuffle(packed_dataset_all)
         model.train()
         for i, (dataset_id, src_batch, tgt_batch, seg_batch) in enumerate(packed_dataset_all):
             if hasattr(model, "module"):
@@ -186,7 +182,7 @@ def main():
             loss = train_model(args, model, optimizer, scheduler, src_batch, tgt_batch, seg_batch, None)
             total_loss += loss.item()
             if (i + 1) % args.report_steps == 0:
-                print("Epoch id: {}, Training steps: {}, Avg loss: {:.3f}".format(epoch, i + 1, total_loss / args.report_steps))
+                args.logger.info("Epoch id: {}, Training steps: {}, Avg loss: {:.3f}".format(epoch, i + 1, total_loss / args.report_steps))
                 total_loss = 0.0
 
         for dataset_id, path in enumerate(args.dataset_path_list):

@@ -46,7 +46,7 @@ def main():
     parser.add_argument("--output_model_path", type=str, default="models/output_model.bin",
                         help=".")
     parser.add_argument("--layers_num", type=int, default=12, help=".")
-    parser.add_argument("--target", choices=["bert", "mlm"], default="bert",
+    parser.add_argument("--type", choices=["bert", "mlm"], default="bert",
                         help="The training target of the pretraining model.")
 
     args = parser.parse_args()
@@ -65,11 +65,11 @@ def main():
 
     convert_bert_transformer_encoder_from_huggingface_to_uer(input_model, output_model, args.layers_num)
 
-    if args.target == "bert":
-        output_model["target.nsp_linear_1.weight"] = input_model["bert.pooler.dense.weight"]
-        output_model["target.nsp_linear_1.bias"] = input_model["bert.pooler.dense.bias"]
-        output_model["target.nsp_linear_2.weight"] = input_model["cls.seq_relationship.weight"]
-        output_model["target.nsp_linear_2.bias"] = input_model["cls.seq_relationship.bias"]
+    if args.type == "bert":
+        output_model["target.sp_linear_1.weight"] = input_model["bert.pooler.dense.weight"]
+        output_model["target.sp_linear_1.bias"] = input_model["bert.pooler.dense.bias"]
+        output_model["target.sp_linear_2.weight"] = input_model["cls.seq_relationship.weight"]
+        output_model["target.sp_linear_2.bias"] = input_model["cls.seq_relationship.bias"]
     output_model["target.mlm_linear_1.weight"] = input_model["cls.predictions.transform.dense.weight"]
     output_model["target.mlm_linear_1.bias"] = input_model["cls.predictions.transform.dense.bias"]
     output_model["target.layer_norm.gamma"] = input_model["cls.predictions.transform.LayerNorm.weight"]

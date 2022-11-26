@@ -11,25 +11,26 @@ import numpy as np
 uer_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.append(uer_dir)
 
-from uer.layers import *
+from uer.embeddings import *
 from uer.encoders import *
 from uer.targets import *
 from uer.utils.constants import *
 from uer.utils import *
 from uer.utils.config import load_hyperparam
+from uer.utils.misc import pooling
 from uer.model_loader import load_model
 from uer.opts import infer_opts, tokenizer_opts
 
 
-def batch_loader(batch_size, src, seg):                                                                                             
-    instances_num = src.size(0)                                                                                                     
-    for i in range(instances_num // batch_size):                                                                                    
-        src_batch = src[i * batch_size : (i + 1) * batch_size]                                                                            
-        seg_batch = seg[i * batch_size : (i + 1) * batch_size]                                                                            
-        yield src_batch, seg_batch                                                                                                  
-    if instances_num > instances_num // batch_size * batch_size:                                                                    
-        src_batch = src[instances_num // batch_size * batch_size:]                                                                      
-        seg_batch = seg[instances_num // batch_size * batch_size:]                                                                      
+def batch_loader(batch_size, src, seg):
+    instances_num = src.size(0)
+    for i in range(instances_num // batch_size):
+        src_batch = src[i * batch_size : (i + 1) * batch_size]
+        seg_batch = seg[i * batch_size : (i + 1) * batch_size]
+        yield src_batch, seg_batch
+    if instances_num > instances_num // batch_size * batch_size:
+        src_batch = src[instances_num // batch_size * batch_size:]
+        seg_batch = seg[instances_num // batch_size * batch_size:]
         yield src_batch, seg_batch
 
 
@@ -59,23 +60,12 @@ class FeatureExtractor(torch.nn.Module):
         super(FeatureExtractor, self).__init__()
         self.embedding = str2embedding[args.embedding](args, len(args.tokenizer.vocab))
         self.encoder = str2encoder[args.encoder](args)
-        self.pooling = args.pooling
+        self.pooling_type = args.pooling
 
     def forward(self, src, seg):
         emb = self.embedding(src, seg)
         output = self.encoder(emb, seg)
-        seg = torch.unsqueeze(seg, dim=-1).type(torch.float)
-        output = output * seg
-
-        if self.pooling == "mean":
-            output = torch.sum(output, dim=1)
-            output = torch.div(output, torch.sum(seg, dim=1))
-        elif self.pooling == "max":
-            output = torch.max(output + (seg - 1) * sys.maxsize, dim=1)[0]
-        elif self.pooling == "last":
-            output = output[torch.arange(output.shape[0]), torch.squeeze(torch.sum(seg, dim=1).type(torch.int64) - 1), :]
-        else:
-            output = output[:, 0, :]
+        output = pooling(output, seg, self.pooling_type)
 
         return output        
 
@@ -133,8 +123,6 @@ if __name__ == '__main__':
 
     infer_opts(parser)
 
-    parser.add_argument("--pooling", choices=["first", "last", "max", "mean"], \
-                                              default="first", help="Pooling Type.")
     parser.add_argument("--whitening_size", type=int, default=None, help="Output vector size after whitening.")
 
     tokenizer_opts(parser)
