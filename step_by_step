@@ -1,0 +1,16 @@
+# conda install pytorch torchvision torchaudio cudatoolkit=11.4 -c pytorch -c nvidia
+# conda install pytorch cudatoolkit=11.4 -c pytorch -c nvidia
+
+# conda install pytorch torchvision torchaudio pytorch-cuda=11.3 -c pytorch -c nvidia
+# conda install pytorch==1.12.1 torchvision==0.13.1 torchaudio==0.12.1 cudatoolkit=11.3 -c pytorch
+conda install transformers pytorch torchvision cudatoolkit=11.3 -c pytorch
+conda install pytorch torchvision cudatoolkit=11.3 -c pytorch
+
+conda install pytorch==1.12.1 torchvision==0.13.1 torchaudio==0.12.1 cudatoolkit=11.3 transformers -c pytorch -c huggingface
+
+conda install pytorch torchvision torchaudio cudatoolkit=11.3 -c pytorch -c nvidia 
+
+conda install transformers pytorch torchvision torchaudio cudatoolkit=11.3 -c huggingface -c pytorch -c nvidia 
+
+
+conda install pytorch torchvision torchaudio pytorch-cuda=11.7 -c pytorch -c nvidia
