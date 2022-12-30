@@ -105,12 +105,12 @@ def main():
             args.dist_train = False
             args.single_gpu = True
             print("Using GPU %d for training." % args.gpu_id)
-        else:
-            # CPU mode.
-            assert ranks_num == 0, "GPUs are specified, please check the arguments."
-            args.dist_train = False
-            args.single_gpu = False
-            print("Using CPU mode for training.")
+        # else:
+        #     # CPU mode.
+        #     assert ranks_num == 0, "GPUs are specified, please check the arguments."
+        #     args.dist_train = False
+        #     args.single_gpu = False
+        #     print("Using CPU mode for training.")
 
     trainer.train_and_validate(args)
 
