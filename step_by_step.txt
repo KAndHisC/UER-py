@@ -5,4 +5,6 @@ conda install sentencepiece
 
 nohup ./code tunnel > vs-code.log 2>&1 &
 
-nohup bash train.bash > train.log 2>&1 &
+nohup bash train-clue.bash > train-clue.log 2>&1 &
+nohup bash train-sanwen.bash > train-sanwen.log 2>&1 &
+nohup bash train-clyric.bash > train-clyric.log 2>&1 &
