@@ -16,5 +16,5 @@ python3 pretrain.py --dataset_path myspace/modern-poem-dataset/processed/poem_25
                     --config_path myspace/gpt-config-256.json \
                     --output_model_path myspace/cluecorpussmall/cluecorpussmall.bin \
                     --world_size 1 --gpu_ranks 0 \
-                    --total_steps 100000 --save_checkpoint_steps 10000 --report_steps 10000 \
-                    --learning_rate 5e-5 --batch_size 16
+                    --total_steps 100000 --save_checkpoint_steps 10000 --report_steps 1000 \
+                    --learning_rate 5e-5 --batch_size 32
