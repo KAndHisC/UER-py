@@ -18,3 +18,4 @@ python3 pretrain.py --dataset_path myspace/modern-poem-dataset/processed/poem_25
                     --world_size 1 --gpu_ranks 0 \
                     --total_steps 100000 --save_checkpoint_steps 10000 --report_steps 1000 \
                     --learning_rate 3e-5 --batch_size 16
+
