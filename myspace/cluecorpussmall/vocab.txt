@@ -3,10 +3,10 @@
 ”
 ’
 ‘
-/t
-/n
-[unused7]
-[unused8]
+⇥
+##⇥
+↲
+##↲
 [unused9]
 [unused10]
 [unused11]
