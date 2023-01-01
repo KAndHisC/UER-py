@@ -20,7 +20,7 @@
   "task_specific_params": {
     "text-generation": {
       "do_sample": true,
-      "max_length": 400
+      "max_length": 256
     }
   },
   "tokenizer_class": "BertTokenizer",
