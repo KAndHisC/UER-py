@@ -10,11 +10,11 @@
 #                     --encoder transformer --mask causal --layernorm_positioning pre \
 #                     --target lm --tie_weights
 
-python3 pretrain.py --dataset_path corpora/clyric/processed/lyric_dataset.pt \
+python3 pretrain.py --dataset_path corpora/clyric/processed/poem_256_dataset.pt \
                     --pretrained_model_path models/cluecorpussmall/cluecorpussmall.bin \
-                    --vocab_path models/google_zh_vocab.txt \
+                    --vocab_path models/my_vocab.txt \
                     --config_path models/clyric/config-256.json \
-                    --output_model_path models/cluecorpussmall/lyric_gpt2_model.bin \
+                    --output_model_path models/cluecorpussmall/cluecorpussmall.bin \
                     --world_size 1 --gpu_ranks 0 \
-                    --total_steps 100000 --save_checkpoint_steps 10000 --report_steps 5000 \
-                    --learning_rate 5e-5 --batch_size 32
+                    --total_steps 100000 --save_checkpoint_steps 10000 --report_steps 10000 \
+                    --learning_rate 5e-5 --batch_size 16
