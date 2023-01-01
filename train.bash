@@ -10,11 +10,11 @@
 #                     --encoder transformer --mask causal --layernorm_positioning pre \
 #                     --target lm --tie_weights
 
-python3 pretrain.py --dataset_path corpora/clyric/processed/poem_256_dataset.pt \
-                    --pretrained_model_path models/cluecorpussmall/cluecorpussmall.bin \
-                    --vocab_path models/my_vocab.txt \
-                    --config_path models/clyric/config-256.json \
-                    --output_model_path models/cluecorpussmall/cluecorpussmall.bin \
+python3 pretrain.py --dataset_path myspace/modern-poem-dataset/processed/poem_256_dataset.pt \
+                    --pretrained_model_path myspace/cluecorpussmall/cluecorpussmall.bin \
+                    --vocab_path myspace/my_vocab.txt \
+                    --config_path myspace/gpt-config-256.json \
+                    --output_model_path myspace/cluecorpussmall/cluecorpussmall.bin \
                     --world_size 1 --gpu_ranks 0 \
                     --total_steps 100000 --save_checkpoint_steps 10000 --report_steps 10000 \
                     --learning_rate 5e-5 --batch_size 16
