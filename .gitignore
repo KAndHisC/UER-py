@@ -138,3 +138,7 @@ dmypy.json
 *.bin
 *.pt
 *.bin-*
+
+# some big data file
+**/all_poems.txt
+**/all_poems.json
