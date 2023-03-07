@@ -3,6 +3,8 @@ conda install pytorch torchvision torchaudio pytorch-cuda=11.6 transformers==4.6
 
 conda install pytorch torchvision torchaudio pytorch-cuda=11.7 -c pytorch -c nvidia
 
+conda install packaging regex
+
 conda install -c conda-forge jieba
 conda install sentencepiece
 
