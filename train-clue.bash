@@ -13,7 +13,7 @@
 python3 pretrain.py --dataset_path datasets/poems/poem_256_dataset.pt \
                     --pretrained_model_path models/clue/clue-gpt-uer.bin \
                     --vocab_path models/my_vocab.txt \
-                    --config_path models/gpt-config-1024.json \
+                    --config_path models/gpt-config.json \
                     --output_model_path models/clue/clue.bin \
                     --world_size 1 --gpu_ranks 0 \
                     --total_steps 100000 --save_checkpoint_steps 10000 --report_steps 1000 \
