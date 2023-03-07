@@ -63,6 +63,8 @@ def main():
 
     # Build and save dataset.
     dataset = str2dataset[args.data_processor](args, tokenizer.vocab, tokenizer)
+
+    print(args)
     dataset.build_and_save(args.processes_num)
 
 

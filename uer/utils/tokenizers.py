@@ -6,6 +6,7 @@ import collections
 import unicodedata
 import six
 import regex as re
+import jieba
 
 class Tokenizer(object):
 
@@ -78,16 +79,16 @@ class SpaceTokenizer(Tokenizer):
 class CPMTokenizer(Tokenizer):
     def __init__(self, args, is_src=True):
         super().__init__(args, is_src)
-        import jieba
-        self.translator = str.maketrans(" \n\u3000", "\u2582\u2583\u2582")
-        self.cut = jieba.cut
+        # ↲　
+        self.translator = str.maketrans(" ↲　", "\u2582\u2583\u2582")
 
     def tokenize(self, text):
         """ Tokenize a string. """
-        seg_list = [x.translate(self.translator) for x in self.cut(text, cut_all=False)]
+        seg_list = [x.translate(self.translator) for x in jieba.cut(text, cut_all=False)]
         new_seg = " ".join(seg_list)
-        return self.sp.encode(new_seg)
 
+        return self.sp_model.encode(new_seg, out_type=str)
+   
     # def encode(self, text):
     #     res = self.tokenize(text)
     #     return res

@@ -16,5 +16,5 @@ python3 pretrain.py --dataset_path datasets/poems/poem_256_dataset.pt \
                     --config_path models/gpt-config-256.json \
                     --output_model_path models/sanwen/sanwen.bin \
                     --world_size 1 --gpu_ranks 0 \
-                    --total_steps 200000 --save_checkpoint_steps 10000 --report_steps 1000 \
+                    --total_steps 100000 --save_checkpoint_steps 10000 --report_steps 1000 \
                     --learning_rate 5e-5 --batch_size 28
