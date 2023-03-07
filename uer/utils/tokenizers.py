@@ -81,6 +81,11 @@ class CPMTokenizer(Tokenizer):
         super().__init__(args, is_src)
         # ↲　
         self.translator = str.maketrans(" ↲　", "\u2582\u2583\u2582")
+        need_instead = {'<pad>':('[PAD]', 5), '<unk>': ('[UNK]',0), '<s>':('[CLS]', 1), '<sep>':('[SEP]', 4), '<mask>':('[MASK]', 6)}
+        for key, value in need_instead.items():
+            self.vocab.pop(key)
+            self.vocab[value[0]] = value[1]
+            self.inv_vocab[value[1]] = value[0]
 
     def tokenize(self, text):
         """ Tokenize a string. """
