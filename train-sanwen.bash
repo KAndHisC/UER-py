@@ -11,10 +11,10 @@
 #                     --target lm --tie_weights
 
 python3 pretrain.py --dataset_path datasets/poems/poem_256_dataset.pt \
-                    --pretrained_model_path models/sanwen/sanwen-gpt.bin \
+                    --pretrained_model_path models/sanwen/sanwen-gpt-uer.bin \
                     --vocab_path models/my_vocab.txt \
-                    --config_path models/gpt-config-256.json \
+                    --config_path models/gpt-config.json \
                     --output_model_path models/sanwen/sanwen.bin \
                     --world_size 1 --gpu_ranks 0 \
                     --total_steps 100000 --save_checkpoint_steps 10000 --report_steps 1000 \
-                    --learning_rate 5e-5 --batch_size 28
+                    --learning_rate 5e-5 --batch_size 32

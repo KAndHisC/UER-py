@@ -32,7 +32,7 @@ class Tokenizer(object):
                                         in range(self.sp_model.GetPieceSize())}
         else:
             self.vocab = Vocab()
-            self.vocab.load(vocab_path, is_quiet=True)
+            self.vocab.load(vocab_path, is_quiet=False)
             self.vocab = self.vocab.w2i
         self.inv_vocab = {v: k for k, v in self.vocab.items()}
 
