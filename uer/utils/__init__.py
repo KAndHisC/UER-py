@@ -6,7 +6,7 @@ from uer.utils.adversarial import *
 
 
 str2tokenizer = {"char": CharTokenizer, "space": SpaceTokenizer, "bert": BertTokenizer,
-                 "bpe": BPETokenizer, "xlmroberta": XLMRobertaTokenizer}
+                 "bpe": BPETokenizer, "xlmroberta": XLMRobertaTokenizer, "cpm":CPMTokenizer}
 str2dataset = {"bert": BertDataset, "lm": LmDataset, "mlm": MlmDataset,
                "bilm": BilmDataset, "albert": AlbertDataset, "mt": MtDataset,
                "t5": T5Dataset, "gsg": GsgDataset, "bart": BartDataset,

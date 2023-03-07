@@ -7,7 +7,6 @@ import unicodedata
 import six
 import regex as re
 
-
 class Tokenizer(object):
 
     def __init__(self, args, is_src=True):
@@ -75,6 +74,28 @@ class SpaceTokenizer(Tokenizer):
             return [token if token in self.vocab else UNK_TOKEN for token in text.strip().split(" ")]
         else:
             return [token for token in text.strip().split(" ")]
+
+class CPMTokenizer(Tokenizer):
+    def __init__(self, args, is_src=True):
+        super().__init__(args, is_src)
+        import jieba
+        self.translator = str.maketrans(" \n\u3000", "\u2582\u2583\u2582")
+        self.cut = jieba.cut
+
+    def tokenize(self, text):
+        """ Tokenize a string. """
+        seg_list = [x.translate(self.translator) for x in self.cut(text, cut_all=False)]
+        new_seg = " ".join(seg_list)
+        return self.sp.encode(new_seg)
+
+    # def encode(self, text):
+    #     res = self.tokenize(text)
+    #     return res
+
+    # def decode(self, tokens):
+    #     text = self.sp.decode(tokens)
+    #     text = text.replace(' ', '').translate(self.translator)
+    #     return text
 
 
 SPIECE_UNDERLINE = u"▁".encode("utf-8")
