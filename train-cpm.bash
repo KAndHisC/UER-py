@@ -18,4 +18,4 @@ python3 pretrain.py --dataset_path datasets/poems/cpm_256_dataset.pt \
                     --output_model_path models/cpm/cpm.bin \
                     --world_size 1 --gpu_ranks 0 \
                     --total_steps 120000 --save_checkpoint_steps 10000 --report_steps 1000 \
-                    --learning_rate 5e-5 --batch_size 24
+                    --learning_rate 5e-5 --batch_size 32
