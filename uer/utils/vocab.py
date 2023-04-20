@@ -19,6 +19,8 @@ class Vocab(object):
         with open(vocab_path, mode="r", encoding="utf-8") as reader:
             for index, line in enumerate(reader):
                 w = line.strip("\r\n").split()[0] if line.strip() else line.strip("\r\n")
+                if w in self.w2i:
+                    print("Warning: duplicated word %s in vocabulary." % w)
                 self.w2i[w] = index
                 self.i2w.append(w)
         if not is_quiet:

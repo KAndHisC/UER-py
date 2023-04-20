@@ -28,7 +28,7 @@
   "task_specific_params": {
     "text-generation": {
       "do_sample": true,
-      "max_length": 120
+      "max_length": 400
     }
   },
   "tokenizer_class": "CpmTokenizer",

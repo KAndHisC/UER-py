@@ -15,6 +15,7 @@ from uer.utils.seed import set_seed
 
 def train_and_validate(args):
     set_seed(args.seed)
+    print(args)
 
     # Load vocabulary.
     if args.data_processor == "mt":

@@ -6,6 +6,7 @@ import collections
 import unicodedata
 import six
 import regex as re
+import jieba
 
 class Tokenizer(object):
 
@@ -31,7 +32,7 @@ class Tokenizer(object):
                                         in range(self.sp_model.GetPieceSize())}
         else:
             self.vocab = Vocab()
-            self.vocab.load(vocab_path, is_quiet=True)
+            self.vocab.load(vocab_path, is_quiet=False)
             self.vocab = self.vocab.w2i
         self.inv_vocab = {v: k for k, v in self.vocab.items()}
 
@@ -78,16 +79,21 @@ class SpaceTokenizer(Tokenizer):
 class CPMTokenizer(Tokenizer):
     def __init__(self, args, is_src=True):
         super().__init__(args, is_src)
-        import jieba
-        self.translator = str.maketrans(" \n\u3000", "\u2582\u2583\u2582")
-        self.cut = jieba.cut
+        # ↲　
+        self.translator = str.maketrans(" ↲　", "\u2582\u2583\u2582")
+        need_instead = {'<pad>':('[PAD]', 5), '<unk>': ('[UNK]',0), '<s>':('[CLS]', 1), '<sep>':('[SEP]', 4), '<mask>':('[MASK]', 6)}
+        for key, value in need_instead.items():
+            self.vocab.pop(key)
+            self.vocab[value[0]] = value[1]
+            self.inv_vocab[value[1]] = value[0]
 
     def tokenize(self, text):
         """ Tokenize a string. """
-        seg_list = [x.translate(self.translator) for x in self.cut(text, cut_all=False)]
+        seg_list = [x.translate(self.translator) for x in jieba.cut(text, cut_all=False)]
         new_seg = " ".join(seg_list)
-        return self.sp.encode(new_seg)
 
+        return self.sp_model.encode(new_seg, out_type=str)
+   
     # def encode(self, text):
     #     res = self.tokenize(text)
     #     return res

@@ -133,7 +133,7 @@ def infer_opts(parser):
 
 
 def tokenizer_opts(parser):
-    parser.add_argument("--tokenizer", choices=["bert", "bpe", "char", "space", "xlmroberta"], default="bert",
+    parser.add_argument("--tokenizer", choices=["bert", "bpe", "char", "space", "xlmroberta", "cpm"], default="bert",
                         help="Specify the tokenizer." 
                              "Original Google BERT uses bert tokenizer."
                              "Char tokenizer segments sentences into characters."
@@ -151,7 +151,7 @@ def tokenizer_opts(parser):
 
 
 def tgt_tokenizer_opts(parser):
-    parser.add_argument("--tgt_tokenizer", choices=["bert", "bpe", "char", "space", "xlmroberta"], default="bert",
+    parser.add_argument("--tgt_tokenizer", choices=["bert", "bpe", "char", "space", "xlmroberta", "cpm"], default="bert",
                         help="Specify the tokenizer for target side.")
     parser.add_argument("--tgt_vocab_path", default=None, type=str,
                         help="Path of the target vocabulary file.")
