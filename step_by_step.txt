@@ -1,7 +1,9 @@
 conda install pytorch torchvision torchaudio pytorch-cuda=11.6 transformers==4.6.1 tokenizers==0.10.1 -c pytorch -c nvidia -c huggingface
 
 
-conda install pytorch torchvision torchaudio pytorch-cuda=11.7 transformers sentencepiece jieba -c pytorch -c nvidia
+conda install pytorch torchvision torchaudio pytorch-cuda=11.8 transformers -c pytorch -c nvidia -c huggingface 
+conda install sentencepiece jieba -c forge
+
 
 conda install packaging regex
 
